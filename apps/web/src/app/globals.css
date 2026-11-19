@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0b2340;
+  --color-navy-light: #163a63;
+  --color-accent: #1f9bb4;
+  --color-accent-dark: #187f94;
+  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-800 antialiased;
+  }
+}

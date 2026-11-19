@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "pdf-design": {
+      "source": "jamditis/claude-skills-journalism",
+      "sourceType": "github",
+      "skillPath": "pdf-design/SKILL.md",
+      "computedHash": "959a3c4f445b805fa3caea43e282a3d7f92f9576c5346f7f13f83c22b855f488"
+    }
+  }
+}

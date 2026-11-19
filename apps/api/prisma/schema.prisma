@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  SHIPYARD
+  ADMIN
+
+  @@map("role")
+}
+
+enum SlotStatus {
+  OPEN
+  BOOKED
+
+  @@map("slot_status")
+}
+
+// Declaration order matters: Postgres sorts enums by it, which puts PENDING first.
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+
+  @@map("booking_status")
+}
+
+model Company {
+  id      String   @id @default(cuid())
+  name    String
+  users   User[]
+  vessels Vessel[]
+
+  @@map("companies")
+}
+
+model Shipyard {
+  id       String    @id @default(cuid())
+  name     String
+  port     String
+  country  String
+  docks    Dock[]
+  services Service[]
+  users    User[]
+
+  @@map("shipyards")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         Role
+  companyId    String?   @map("company_id")
+  shipyardId   String?   @map("shipyard_id")
+  company      Company?  @relation(fields: [companyId], references: [id])
+  shipyard     Shipyard? @relation(fields: [shipyardId], references: [id])
+  bookings     Booking[]
+
+  @@map("users")
+}
+
+model Vessel {
+  id           String    @id @default(cuid())
+  companyId    String    @map("company_id")
+  name         String
+  imo          String    @unique @db.Char(7)
+  type         String
+  lengthM      Decimal   @map("length_m") @db.Decimal(6, 2)
+  beamM        Decimal   @map("beam_m") @db.Decimal(5, 2)
+  draftM       Decimal   @map("draft_m") @db.Decimal(4, 2)
+  grossTonnage Int       @map("gross_tonnage")
+  company      Company   @relation(fields: [companyId], references: [id])
+  bookings     Booking[]
+
+  @@index([companyId])
+  @@map("vessels")
+}
+
+model Dock {
+  id         String   @id @default(cuid())
+  shipyardId String   @map("shipyard_id")
+  name       String
+  maxLengthM Decimal  @map("max_length_m") @db.Decimal(6, 2)
+  maxBeamM   Decimal  @map("max_beam_m") @db.Decimal(5, 2)
+  maxDraftM  Decimal  @map("max_draft_m") @db.Decimal(4, 2)
+  shipyard   Shipyard @relation(fields: [shipyardId], references: [id])
+  slots      Slot[]
+
+  @@map("docks")
+}
+
+model Service {
+  id          String           @id @default(cuid())
+  shipyardId  String           @map("shipyard_id")
+  name        String
+  description String?
+  priceEur    Int?             @map("price_eur")
+  shipyard    Shipyard         @relation(fields: [shipyardId], references: [id])
+  bookings    BookingService[]
+
+  @@map("services")
+}
+
+model Slot {
+  id        String     @id @default(cuid())
+  dockId    String     @map("dock_id")
+  startDate DateTime   @map("start_date") @db.Date
+  endDate   DateTime   @map("end_date") @db.Date
+  status    SlotStatus @default(OPEN)
+  dock      Dock       @relation(fields: [dockId], references: [id])
+  bookings  Booking[]
+
+  @@index([dockId, startDate])
+  @@map("slots")
+}
+
+model Booking {
+  id              String           @id @default(cuid())
+  slotId          String           @map("slot_id")
+  vesselId        String           @map("vessel_id")
+  requestedById   String           @map("requested_by_id")
+  status          BookingStatus    @default(PENDING)
+  notes           String?
+  shipyardComment String?          @map("shipyard_comment")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  decidedAt       DateTime?        @map("decided_at")
+  slot            Slot             @relation(fields: [slotId], references: [id])
+  vessel          Vessel           @relation(fields: [vesselId], references: [id])
+  requestedBy     User             @relation(fields: [requestedById], references: [id])
+  services        BookingService[]
+
+  @@index([slotId, status])
+  @@map("bookings")
+}
+
+model BookingService {
+  bookingId String  @map("booking_id")
+  serviceId String  @map("service_id")
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@id([bookingId, serviceId])
+  @@map("booking_services")
+}
